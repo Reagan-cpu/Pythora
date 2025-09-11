@@ -246,25 +246,26 @@ export default function CodeEditor({
         />
 
         {/* Custom Context Menu */}
-       {showContextMenu && (
+{showContextMenu && (
   <div
     className="absolute bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg z-50 w-56"
     style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
   >
     <button
-      className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+      className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none text-sm font-sans"
       onClick={() => handleMenuClick("changeAll")}
     >
       Change All Occurrences
     </button>
     <button
-      className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+      className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none text-sm font-sans"
       onClick={() => handleMenuClick("commandPalette")}
     >
       Command Palette
     </button>
   </div>
 )}
+
 
       </div>
 
