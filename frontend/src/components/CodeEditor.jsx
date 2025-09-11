@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Editor from "@monaco-editor/react";
 import {
@@ -25,7 +25,16 @@ export default function CodeEditor({
   isFullscreen = true,
 }) {
   const [showWarning, setShowWarning] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+  const [showContextMenu, setShowContextMenu] = useState(false);
   const { theme } = useTheme();
+
+  const lockedRef = useRef(locked);
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    lockedRef.current = locked;
+  }, [locked]);
 
   const showToast = (message) => {
     setShowWarning(message);
@@ -33,23 +42,39 @@ export default function CodeEditor({
   };
 
   const handleEditorMount = (editor, monaco) => {
-    // disable copy/paste + right-click
+    editorRef.current = editor;
+
+    // Disable default context menu
+    editor.updateOptions({ contextmenu: false });
+
+    // Capture right-click on editor DOM node
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      domNode.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!lockedRef.current) {
+          // show custom context menu at mouse position
+          setContextMenuPos({ x: e.clientX, y: e.clientY });
+          setShowContextMenu(true);
+        } else {
+          showToast("Right-click is disabled!");
+        }
+      });
+    }
+
+    // Disable clipboard shortcuts
     editor.onKeyDown((e) => {
-      const key = e.code || e.keyCode;
       if (e.ctrlKey || e.metaKey) {
-        if (["KeyV", "KeyC", "KeyX"].includes(key)) {
+        if (["KeyV", "KeyC", "KeyX"].includes(e.code)) {
           e.preventDefault();
           showToast("Clipboard actions are disabled!");
         }
       }
     });
 
-    editor.onContextMenu((e) => {
-      e.preventDefault();
-      showToast("Right-click is disabled!");
-    });
-
-    // ✅ Register autocomplete suggestions for Python
+    // Register autocomplete suggestions for Python
     monaco.languages.registerCompletionItemProvider("python", {
       provideCompletionItems: () => ({
         suggestions: [
@@ -57,16 +82,14 @@ export default function CodeEditor({
             label: "print",
             kind: monaco.languages.CompletionItemKind.Function,
             insertText: "print(${1:msg})",
-            insertTextRules:
-              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             documentation: "Prints output to the console",
           },
           {
             label: "def",
             kind: monaco.languages.CompletionItemKind.Snippet,
             insertText: "def ${1:func_name}(${2:args}):\n    ${3:pass}",
-            insertTextRules:
-              monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             documentation: "Define a Python function",
           },
           {
@@ -79,7 +102,7 @@ export default function CodeEditor({
       }),
     });
 
-    // ✅ Register autocomplete suggestions for C
+    // Register autocomplete suggestions for C
     monaco.languages.registerCompletionItemProvider("c", {
       provideCompletionItems: () => ({
         suggestions: [
@@ -107,7 +130,7 @@ export default function CodeEditor({
     });
   };
 
-  // ✅ Starter templates
+  // Starter templates
   const templates = {
     python: "# Python Hello World\nprint('Hello, World!')\n",
     c: "/* C Hello World */\n#include <stdio.h>\n\nint main() {\n    printf(\"Hello, World!\\n\");\n    return 0;\n}\n",
@@ -115,24 +138,36 @@ export default function CodeEditor({
 
   const switchLanguage = (newLang) => {
     setLang(newLang);
-    if (!code.trim()) {
-      setCode(templates[newLang]);
+    if (!code.trim()) setCode(templates[newLang]);
+  };
+
+  // Handle custom context menu option clicks
+  const handleMenuClick = (action) => {
+    if (!editorRef.current) return;
+
+    editorRef.current.focus(); // make sure editor has focus
+
+    if (action === "commandPalette") {
+      editorRef.current.trigger("keyboard", "editor.action.quickCommand", null);
     }
+    if (action === "changeAll") {
+      editorRef.current.trigger("keyboard", "editor.action.selectHighlights", null);
+    }
+
+    setShowContextMenu(false);
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-900">
+    <div
+      className="h-full flex flex-col bg-white dark:bg-gray-900"
+      onClick={() => setShowContextMenu(false)}
+    >
       {/* Toolbar */}
       <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2">
         <div className="flex items-center gap-3">
-          {/* ✅ Language Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 text-sm"
-              >
+              <Button variant="outline" size="sm" className="flex items-center gap-2 text-sm">
                 {lang === "python" ? "Python" : "C"}
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -140,12 +175,8 @@ export default function CodeEditor({
             <DropdownMenuContent>
               <DropdownMenuLabel>Select Language</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => switchLanguage("python")}>
-                Python
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchLanguage("c")}>
-                C
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => switchLanguage("python")}>Python</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => switchLanguage("c")}>C</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -161,8 +192,6 @@ export default function CodeEditor({
               <span>Running...</span>
             </div>
           )}
-
-          {/* Run Button */}
           <button
             onClick={onRun}
             disabled={locked || loading || !isFullscreen}
@@ -175,7 +204,6 @@ export default function CodeEditor({
             Run Code
           </button>
 
-          {/* Export PDF Button */}
           <button
             onClick={onDownload}
             disabled={locked || loading || !isFullscreen}
@@ -191,7 +219,7 @@ export default function CodeEditor({
       </div>
 
       {/* Editor */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
         <Editor
           height="100%"
           language={lang}
@@ -201,21 +229,43 @@ export default function CodeEditor({
           onMount={handleEditorMount}
           options={{
             readOnly: disabled || locked || !isFullscreen,
+            contextmenu: false, // custom menu
             minimap: { enabled: false },
             fontSize: 14,
-            fontFamily:
-              "'Cascadia Code', 'Fira Code', 'Courier New', monospace",
+            fontFamily: "'Cascadia Code', 'Fira Code', 'Courier New', monospace",
             wordWrap: "on",
             lineNumbers: "on",
             autoClosingBrackets: "always",
             autoClosingQuotes: "always",
-            quickSuggestions: true, // ✅ autocomplete popup while typing
-            suggestOnTriggerCharacters: true, // ✅ show on dot, etc.
-            parameterHints: { enabled: true }, // ✅ show function params
+            quickSuggestions: true,
+            suggestOnTriggerCharacters: true,
+            parameterHints: { enabled: true },
             tabSize: 4,
             folding: true,
           }}
         />
+
+        {/* Custom Context Menu */}
+       {showContextMenu && (
+  <div
+    className="absolute bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg z-50 w-56"
+    style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
+  >
+    <button
+      className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+      onClick={() => handleMenuClick("changeAll")}
+    >
+      Change All Occurrences
+    </button>
+    <button
+      className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+      onClick={() => handleMenuClick("commandPalette")}
+    >
+      Command Palette
+    </button>
+  </div>
+)}
+
       </div>
 
       {/* Warning Toast */}
