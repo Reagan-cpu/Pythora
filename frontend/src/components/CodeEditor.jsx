@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Editor, { loader } from "@monaco-editor/react";
  
@@ -30,16 +29,7 @@ export default function CodeEditor({
   const [showWarning, setShowWarning] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const [showContextMenu, setShowContextMenu] = useState(false);
-  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
-  const [showContextMenu, setShowContextMenu] = useState(false);
   const { theme } = useTheme();
-
-  const lockedRef = useRef(locked);
-  const editorRef = useRef(null);
-
-  useEffect(() => {
-    lockedRef.current = locked;
-  }, [locked]);
 
   const lockedRef = useRef(locked);
   const editorRef = useRef(null);
@@ -186,32 +176,12 @@ useEffect(() => {
     }
     if (action === "changeAll") {
       editorRef.current.trigger("keyboard", "editor.action.selectHighlights", null);
-    if (!code.trim()) setCode(templates[newLang]);
-  };
-
-  // Handle custom context menu option clicks
-  const handleMenuClick = (action) => {
-    if (!editorRef.current) return;
-
-    editorRef.current.focus(); // make sure editor has focus
-
-    if (action === "commandPalette") {
-      editorRef.current.trigger("keyboard", "editor.action.quickCommand", null);
     }
-    if (action === "changeAll") {
-      editorRef.current.trigger("keyboard", "editor.action.selectHighlights", null);
-    }
-
-    setShowContextMenu(false);
 
     setShowContextMenu(false);
   };
 
   return (
-    <div
-      className="h-full flex flex-col bg-white dark:bg-gray-900"
-      onClick={() => setShowContextMenu(false)}
-    >
     <div
       className="h-full flex flex-col bg-white dark:bg-gray-900"
       onClick={() => setShowContextMenu(false)}
@@ -222,7 +192,6 @@ useEffect(() => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-2 text-sm">
-              <Button variant="outline" size="sm" className="flex items-center gap-2 text-sm">
                 {lang === "python" ? "Python" : "C"}
                 <ChevronDown className="w-4 h-4" />
               </Button>
@@ -230,8 +199,6 @@ useEffect(() => {
             <DropdownMenuContent>
               <DropdownMenuLabel>Select Language</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => switchLanguage("python")}>Python</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => switchLanguage("c")}>C</DropdownMenuItem>
               <DropdownMenuItem onClick={() => switchLanguage("python")}>Python</DropdownMenuItem>
               <DropdownMenuItem onClick={() => switchLanguage("c")}>C</DropdownMenuItem>
             </DropdownMenuContent>
@@ -256,10 +223,6 @@ useEffect(() => {
               ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
               : "text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
               }`}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${locked || loading || !isFullscreen
-              ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-              : "text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-              }`}
           >
             Run Code
           </button>
@@ -267,10 +230,6 @@ useEffect(() => {
           <button
             onClick={onDownload}
             disabled={locked || loading || !isFullscreen}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${locked || loading || !isFullscreen
-              ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
-              : "text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
-              }`}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${locked || loading || !isFullscreen
               ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
               : "text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
@@ -283,7 +242,6 @@ useEffect(() => {
 
       {/* Editor */}
       <div className="flex-1 relative">
-      <div className="flex-1 relative">
         <Editor
           height="100%"
           language={lang}
@@ -294,10 +252,8 @@ useEffect(() => {
           options={{
             readOnly: disabled || locked || !isFullscreen,
             contextmenu: false, // custom menu
-            contextmenu: false, // custom menu
             minimap: { enabled: false },
             fontSize: 14,
-            fontFamily: "'Cascadia Code', 'Fira Code', 'Courier New', monospace",
             fontFamily: "'Cascadia Code', 'Fira Code', 'Courier New', monospace",
             wordWrap: "on",
             lineNumbers: "on",
@@ -335,29 +291,6 @@ useEffect(() => {
         )}
 
 
-
-        {/* Custom Context Menu */}
-        {showContextMenu && (
-          <div
-            className="absolute bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg z-50 w-56"
-            style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
-          >
-            <button
-              className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none text-sm font-sans"
-              onClick={() => handleMenuClick("changeAll")}
-            >
-              Change All Occurrences
-            </button>
-            <button
-              className="block px-4 py-2 w-full text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none text-sm font-sans"
-              onClick={() => handleMenuClick("commandPalette")}
-            >
-              Command Palette
-            </button>
-          </div>
-        )}
-
-
       </div>
 
       {/* Warning Toast */}
@@ -369,4 +302,3 @@ useEffect(() => {
     </div>
   );
 }
-
