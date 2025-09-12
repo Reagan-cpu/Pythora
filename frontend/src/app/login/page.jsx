@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../libs/api";   // ✅ centralized axios
+import api from "../../libs/api";   // ✅ centralized axios
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
@@ -14,6 +15,10 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+      const res = await api.post("/auth/login", { email, password }); // ✅ cleaner
+      login(res.data.user);
+      localStorage.setItem("token", res.data.token);
+      router.push("/");
       const res = await api.post("/auth/login", { email, password }); // ✅ cleaner
       login(res.data.user);
       localStorage.setItem("token", res.data.token);
